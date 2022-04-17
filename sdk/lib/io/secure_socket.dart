@@ -277,6 +277,7 @@ abstract class RawSecureSocket implements RawSocket {
       bool onBadCertificate(X509Certificate certificate)?,
       void keyLog(String line)?,
       List<String>? supportedProtocols,
+      String? hostname,
       Duration? timeout}) {
     _RawSecureSocket._verifyFields(host, port, false, false);
     return RawSocket.connect(host, port, timeout: timeout).then((socket) {
@@ -284,6 +285,7 @@ abstract class RawSecureSocket implements RawSocket {
           context: context,
           onBadCertificate: onBadCertificate,
           keyLog: keyLog,
+          hostname: hostname,
           supportedProtocols: supportedProtocols);
     });
   }
@@ -295,6 +297,7 @@ abstract class RawSecureSocket implements RawSocket {
       {SecurityContext? context,
       bool onBadCertificate(X509Certificate certificate)?,
       void keyLog(String line)?,
+      String? hostname,
       List<String>? supportedProtocols}) {
     return RawSocket.startConnect(host, port)
         .then((ConnectionTask<RawSocket> rawState) {
@@ -303,6 +306,7 @@ abstract class RawSecureSocket implements RawSocket {
             context: context,
             onBadCertificate: onBadCertificate,
             keyLog: keyLog,
+            hostname: hostname,
             supportedProtocols: supportedProtocols);
       });
       return new ConnectionTask<RawSecureSocket>._(socket, rawState._onCancel);
@@ -364,6 +368,7 @@ abstract class RawSecureSocket implements RawSocket {
   static Future<RawSecureSocket> secure(RawSocket socket,
       {StreamSubscription<RawSocketEvent>? subscription,
       host,
+      String? hostname,
       SecurityContext? context,
       bool onBadCertificate(X509Certificate certificate)?,
       void keyLog(String line)?,
@@ -376,6 +381,7 @@ abstract class RawSecureSocket implements RawSocket {
         context: context,
         onBadCertificate: onBadCertificate,
         keyLog: keyLog,
+        hostname: hostname,
         supportedProtocols: supportedProtocols);
   }
 
@@ -546,7 +552,8 @@ class _RawSecureSocket extends Stream<RawSocketEvent>
       bool requireClientCertificate = false,
       bool onBadCertificate(X509Certificate certificate)?,
       void keyLog(String line)?,
-      List<String>? supportedProtocols}) {
+      List<String>? supportedProtocols,
+      String? hostname}) {
     _verifyFields(host, requestedPort, requestClientCertificate,
         requireClientCertificate);
     if (host is InternetAddress) host = host.host;
@@ -556,6 +563,7 @@ class _RawSecureSocket extends Stream<RawSocketEvent>
     }
     return new _RawSecureSocket(
             address,
+            hostname,
             requestedPort,
             isServer,
             context ?? SecurityContext.defaultContext,
@@ -573,6 +581,7 @@ class _RawSecureSocket extends Stream<RawSocketEvent>
 
   _RawSecureSocket(
       this.address,
+      String? hostname,
       int requestedPort,
       this.isServer,
       this.context,
@@ -643,7 +652,7 @@ class _RawSecureSocket extends Stream<RawSocketEvent>
       var encodedProtocols =
           SecurityContext._protocolsToLengthEncoding(supportedProtocols);
       secureFilter.connect(
-          address.host,
+          hostname ?? address.host,
           context,
           isServer,
           requestClientCertificate || requireClientCertificate,
